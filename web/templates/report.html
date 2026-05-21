@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ app_name }} Report</title>
+  {% if vis_network_css %}<style>{{ vis_network_css | safe }}</style>{% endif %}
+  {% if app_css %}<style>{{ app_css | safe }}</style>{% else %}<link rel="stylesheet" href="/css/app.css">{% endif %}
+</head>
+<body>
+  <main class="shell report-shell">
+    <header class="topbar">
+      <div>
+        <h1>OSINT Report</h1>
+        <p>{{ result.entity.kind.value }} | {{ result.entity.normalized }} | {{ result.created_at.isoformat() }}</p>
+      </div>
+      <div class="score">{{ "%.2f"|format(result.confidence) }}</div>
+    </header>
+
+    <section class="metric-grid report-metrics animated-grid">
+      <div><span>Mode</span><b>{{ result.mode }}</b></div>
+      <div><span>Status</span><b>{{ result.status }}</b></div>
+      <div><span>Confidence</span><b>{{ "%.2f"|format(result.confidence) }}</b><i style="--v:{{ result.confidence }}"></i></div>
+      <div><span>Risk</span><b>{{ "%.2f"|format(risk_score) }}</b><i style="--v:{{ risk_score }}"></i></div>
+      <div><span>Findings</span><b>{{ result.findings|length }}</b></div>
+      <div><span>Sources</span><b>{{ source_rows|length }}</b></div>
+      <div><span>Graph Nodes</span><b>{{ graph.nodes|length }}</b></div>
+      <div><span>Graph Edges</span><b>{{ graph.edges|length }}</b></div>
+    </section>
+
+    {% if result.refusal_reason %}
+      <section class="alert">{{ result.refusal_reason }}</section>
+    {% endif %}
+
+    <section class="report-band">
+      <h2>Entity Map</h2>
+      <div class="entity-map">
+        {% for key, value in entity_counters.items() %}
+          <div><span>{{ key }}</span><b>{{ value }}</b></div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="graph-pane report-graph">
+      <div class="pane-title">
+        <span>Graph</span>
+        <div class="graph-tools">
+          <input id="graphSearch" class="graph-search" placeholder="Search graph">
+          <div id="groupFilters" class="filters"></div>
+        </div>
+      </div>
+      <div id="graph"></div>
+    </section>
+
+    <section class="report-band">
+      <h2>Timeline</h2>
+      <div class="timeline">
+        {% for item in timeline %}
+          <div><span>{{ item.stage }}</span><pre>{{ item | tojson(indent=2) }}</pre></div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="report-band">
+      <h2>Source Table</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Source</th>
+              <th>Domain</th>
+              <th>Engine</th>
+              <th>Status</th>
+              <th>Confidence</th>
+              <th>Risk</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in source_rows %}
+              <tr>
+                <td>
+                  {% if row.favicon %}<img class="favicon" src="{{ row.favicon }}" alt="">{% endif %}
+                  <a href="{{ row.url }}" rel="noreferrer" target="_blank">{{ row.title or row.url }}</a>
+                </td>
+                <td>{{ row.domain }}</td>
+                <td>{{ row.engine }}</td>
+                <td>{{ row.status_code or "-" }}</td>
+                <td>{{ row.confidence }}</td>
+                <td>{{ row.risk_score }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    {% if screenshots %}
+      <section class="report-band">
+        <h2>Screenshots</h2>
+        <div class="screenshot-grid">
+          {% for screenshot in screenshots %}
+            <figure>
+              <img src="{{ screenshot.data_url }}" alt="Screenshot">
+              <figcaption>{{ screenshot.path }}</figcaption>
+            </figure>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+
+    <section class="report-band">
+      <h2>Findings</h2>
+      <div class="report-findings">
+        {% for finding in result.findings %}
+          <details class="finding-card" open>
+            <summary>
+              <span>{{ finding.title }}</span>
+              <b>{{ finding.confidence }}</b>
+            </summary>
+            <p>{{ finding.category }} | {{ finding.source }}</p>
+            {% if finding.source_url %}
+              <a href="{{ finding.source_url }}" rel="noreferrer" target="_blank">{{ finding.source_url }}</a>
+            {% endif %}
+            <pre>{{ finding.data | tojson(indent=2) }}</pre>
+          </details>
+        {% endfor %}
+      </div>
+    </section>
+  </main>
+  <script>
+    window.__GRAPH__ = {{ graph | tojson }};
+  </script>
+  {% if vis_network_js %}<script>{{ vis_network_js | safe }}</script>{% else %}<script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>{% endif %}
+  {% if graph_renderer_js %}<script>{{ graph_renderer_js | safe }}</script>{% else %}<script src="/js/graph-visualization.js"></script>{% endif %}
+  {% if report_js %}<script>{{ report_js | safe }}</script>{% else %}<script src="/js/report.js"></script>{% endif %}
+</body>
+</html>

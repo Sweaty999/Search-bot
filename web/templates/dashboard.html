@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ app_name }}</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <h1>{{ app_name }}</h1>
+        <p id="profileLine">Ready</p>
+      </div>
+      <div class="top-actions">
+        <button id="historyBtn" class="icon-btn" title="History">H</button>
+        <button id="adminBtn" class="icon-btn hidden" title="Admin">A</button>
+      </div>
+    </header>
+
+    <section class="search-band">
+      <select id="entityType" aria-label="Entity type">
+        <option value="auto">Auto</option>
+        <option value="username">Username</option>
+        <option value="email">Email</option>
+        <option value="phone">Phone</option>
+        <option value="domain">Domain</option>
+        <option value="url">URL</option>
+        <option value="ip">IP</option>
+        <option value="image_url">Image URL</option>
+        <option value="pdf_url">PDF URL</option>
+      </select>
+      <input id="queryInput" maxlength="500" autocomplete="off" placeholder="username, email, domain, URL, IP">
+      <button id="searchBtn">Search</button>
+      <button id="deepBtn">Deep</button>
+    </section>
+
+    <section class="workspace">
+      <div class="graph-pane">
+        <div class="pane-title">
+          <span>Graph</span>
+          <div class="graph-tools">
+            <input id="graphSearch" class="graph-search" placeholder="Search graph">
+            <div id="groupFilters" class="filters"></div>
+          </div>
+        </div>
+        <div id="graph"></div>
+      </div>
+
+      <aside class="side-pane">
+        <section>
+          <h2>Summary</h2>
+          <div id="summary" class="metric-grid"></div>
+        </section>
+        <section>
+          <h2>Findings</h2>
+          <div id="findings" class="stack"></div>
+        </section>
+        <section>
+          <h2>History</h2>
+          <div id="history" class="stack compact"></div>
+        </section>
+        <section id="adminPanel" class="hidden">
+          <h2>Admin</h2>
+          <div id="adminStats" class="metric-grid"></div>
+          <h2>Provider Health</h2>
+          <div id="providerHealth" class="stack compact"></div>
+        </section>
+      </aside>
+    </section>
+  </main>
+  <script src="/js/graph-visualization.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
