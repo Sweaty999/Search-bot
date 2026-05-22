@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 
 class EntityKind(str, Enum):
+    telegram = "telegram"
     username = "username"
     email = "email"
     phone = "phone"

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 
+from core.localization import t
 from osint.collectors.base import BaseCollector, CollectorContext, fetch_text
 from osint.models import Finding
 from osint.parsers.html import extract_page_metadata
@@ -17,9 +18,9 @@ class UrlCollector(BaseCollector):
             return [
                 Finding(
                     category="url",
-                    title="URL was not fetched",
+                    title=t("findings.url_not_fetched_title"),
                     source=self.name,
-                    description="The URL is not a public HTTP(S) target or was blocked by safety checks.",
+                    description=t("findings.url_not_fetched_description"),
                     confidence=0.2,
                 )
             ]
@@ -41,7 +42,7 @@ class UrlCollector(BaseCollector):
         return [
             Finding(
                 category="url",
-                title="URL metadata",
+                title=t("findings.url_metadata_title"),
                 source=self.name,
                 source_url=fetched.url,
                 confidence=0.86 if fetched.status < 400 else 0.45,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from core.localization import t
 from osint.collectors.base import BaseCollector, CollectorContext
 from osint.models import Finding
 
@@ -27,7 +28,7 @@ class ArchiveCollector(BaseCollector):
             return [
                 Finding(
                     category="archive",
-                    title="Wayback Machine lookup failed",
+                    title=t("findings.archive_failed_title"),
                     source="wayback",
                     confidence=0.2,
                     data={"error": str(exc)},
@@ -52,11 +53,10 @@ class ArchiveCollector(BaseCollector):
         return [
             Finding(
                 category="archive",
-                title="Wayback Machine archived snapshots",
+                title=t("findings.archive_snapshots_title"),
                 source="wayback",
                 source_url=f"https://web.archive.org/web/*/{target}",
                 confidence=0.72 if snapshots else 0.25,
                 data={"snapshots": snapshots, "count": len(snapshots)},
             )
         ]
-

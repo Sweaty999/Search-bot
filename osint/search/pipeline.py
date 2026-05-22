@@ -12,6 +12,7 @@ import phonenumbers
 from bs4 import BeautifulSoup, XMLParsedAsHTMLWarning
 
 from core.config import Settings
+from core.localization import t
 from core.validators import is_public_http_url
 from osint.models import Entity, EntityKind, Finding, SearchHit
 from osint.parsers.html import extract_page_metadata
@@ -23,12 +24,20 @@ EXPANSION_SITES = (
     "github.com",
     "reddit.com",
     "t.me",
+    "telegram.me",
+    "telegra.ph",
     "pastebin.com",
     "medium.com",
     "youtube.com",
     "tiktok.com",
     "instagram.com",
-    "facebook.com",
+    "twitch.tv",
+    "steamcommunity.com",
+    "gitlab.com",
+    "pinterest.com",
+    "soundcloud.com",
+    "vimeo.com",
+    "behance.net",
 )
 
 SOCIAL_HOSTS = (
@@ -83,19 +92,19 @@ async def run_deep_search_pipeline(
 
     queries = expand_queries(entity, query)[:stage_limit]
     timeline: list[dict[str, object]] = [
-        {"stage": "detect_entity", "entity_type": entity.kind.value, "value": entity.normalized},
-        {"stage": "query_expansion", "queries": queries},
+        {"stage": t("pipeline.stage_detect_entity"), "entity_type": entity.kind.value, "value": entity.normalized},
+        {"stage": t("pipeline.stage_query_expansion"), "queries": queries},
     ]
 
     search_results = await asyncio.gather(*[search.search(http, item, limit=result_limit) for item in queries])
     raw_hits = [hit for hits in search_results for hit in hits]
     deduped = _dedupe_hits(raw_hits)
-    timeline.append({"stage": "parallel_search", "raw_hits": len(raw_hits), "deduped_hits": len(deduped)})
+    timeline.append({"stage": t("pipeline.stage_parallel_search"), "raw_hits": len(raw_hits), "deduped_hits": len(deduped)})
 
     enriched = await _enrich_hits(deduped[:enrich_limit], entity, http, settings, deep or premium)
     ranked = _rank_enriched(enriched, entity)
-    timeline.append({"stage": "enrichment", "enriched_hits": len(enriched)})
-    timeline.append({"stage": "ranking", "top_domains": _top_domains(ranked, limit=8)})
+    timeline.append({"stage": t("pipeline.stage_enrichment"), "enriched_hits": len(enriched)})
+    timeline.append({"stage": t("pipeline.stage_ranking"), "top_domains": _top_domains(ranked, limit=8)})
 
     entities = _entities_from_hits(ranked)
     source_table = [_source_row(hit) for hit in ranked[:50]]
@@ -106,7 +115,7 @@ async def run_deep_search_pipeline(
 
     finding = Finding(
         category="deep_search",
-        title="Multi-stage public search intelligence",
+        title=t("findings.deep_search_title"),
         source="deep_search_pipeline",
         confidence=confidence,
         data={
@@ -116,9 +125,9 @@ async def run_deep_search_pipeline(
             "entity_counters": dict(counters),
             "risk_score": risk_score,
             "ranking_notes": [
-                "Duplicates normalized by scheme, host and path.",
-                "Exact matches and official platform profiles receive priority.",
-                "Login/search/captcha pages are treated as noisy.",
+                t("findings.ranking_notes_dedupe"),
+                t("findings.ranking_notes_exact"),
+                t("findings.ranking_notes_noise"),
             ],
         },
         entities=entities[:120],
@@ -132,15 +141,41 @@ def expand_queries(entity: Entity, query: str) -> list[str]:
         base,
         f'"{base}"',
         f"{base} social media",
-        f"{base} соцмережі",
+        f"{base} соцсети",
     ]
     if entity.kind == EntityKind.email:
         local, _, domain = base.partition("@")
-        expansions.extend([f'"{base}"', f'"{local}" "{domain}"', f'"{base}" site:github.com'])
+        expansions.extend(
+            [
+                f'"{base}"',
+                f'"{local}" "{domain}"',
+                f'"{base}" site:github.com',
+                f'"{base}" site:docs.google.com',
+                f'"{domain}" mx spf dmarc',
+                f'"{domain}" contact email',
+            ]
+        )
     elif entity.kind == EntityKind.phone:
         expansions.extend(_phone_query_variants(base))
     elif entity.kind == EntityKind.domain:
         expansions.extend([f"site:{base}", f'"{base}" security', f'"{base}" contact'])
+    elif entity.kind == EntityKind.telegram:
+        username = base.strip("@")
+        expansions.extend(
+            [
+                f'"@{username}"',
+                f'"t.me/{username}"',
+                f'"telegram.me/{username}"',
+                f'"{username}" telegram',
+                f'"{username}" site:t.me',
+                f'"{username}" site:telegra.ph',
+                f'"{username}" site:github.com',
+                f'"{username}" site:reddit.com',
+                f'"{username}" site:youtube.com',
+                f'"{username}" site:tiktok.com',
+                f'"{username}" site:instagram.com',
+            ]
+        )
     elif entity.kind == EntityKind.username:
         expansions.extend([f'"{base}" username', f'"@{base}"'])
 

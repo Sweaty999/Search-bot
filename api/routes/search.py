@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.auth.telegram import current_webapp_user
 from api.services.dependencies import get_db
 from api.services.search_service import execute_search
+from core.localization import t
 from core.models import Search, User
 
 router = APIRouter(prefix="/api", tags=["search"])
@@ -26,6 +27,9 @@ async def search_endpoint(
     user: User = Depends(current_webapp_user),
     session: AsyncSession = Depends(get_db),
 ) -> dict[str, object]:
+    allowed_entity_types = {"auto", "telegram", "username", "email", "phone", "domain", "url", "ip", "image_url", "pdf_url"}
+    if payload.entity_type not in allowed_entity_types:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=t("errors.invalid_entity_type"))
     try:
         execution = await execute_search(
             session,
@@ -33,6 +37,7 @@ async def search_endpoint(
             payload.query,
             deep=payload.deep,
             force_refresh=payload.force_refresh,
+            force_kind=None if payload.entity_type == "auto" else payload.entity_type,
         )
     except PermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
@@ -80,6 +85,5 @@ async def search_result_endpoint(
         statement = statement.where(Search.user_id == user.id)
     search = await session.scalar(statement)
     if not search:
-        raise HTTPException(status_code=404, detail="Search not found.")
+        raise HTTPException(status_code=404, detail=t("errors.search_not_found"))
     return {"result": search.result, "graph": search.graph, "summary": search.summary}
-

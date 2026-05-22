@@ -10,6 +10,7 @@ from api.services.dependencies import get_db
 from core.accounts import platform_stats, set_ban
 from core.api_manager import get_api_manager
 from core.cache import clear_cache
+from core.localization import t
 from core.models import LogEntry, User
 from core.security import is_admin
 
@@ -23,7 +24,7 @@ class BanRequest(BaseModel):
 
 def _require_admin(user: User) -> None:
     if not is_admin(user):
-        raise HTTPException(status_code=403, detail="Admin role required.")
+        raise HTTPException(status_code=403, detail=t("admin.role_required"))
 
 
 @router.get("/stats")

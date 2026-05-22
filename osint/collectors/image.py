@@ -6,6 +6,7 @@ from io import BytesIO
 import exifread
 from PIL import Image
 
+from core.localization import t
 from osint.collectors.base import BaseCollector, CollectorContext, fetch_bytes
 from osint.models import Finding
 
@@ -19,10 +20,10 @@ class ImageCollector(BaseCollector):
             return [
                 Finding(
                     category="image",
-                    title="Image was not fetched",
+                    title=t("findings.image_not_fetched_title"),
                     source=self.name,
                     confidence=0.2,
-                    description="The image URL is not public HTTP(S) or could not be downloaded.",
+                    description=t("findings.image_not_fetched_description"),
                 )
             ]
 
@@ -48,7 +49,7 @@ class ImageCollector(BaseCollector):
         return [
             Finding(
                 category="image",
-                title="Image public metadata",
+                title=t("findings.image_metadata_title"),
                 source=self.name,
                 source_url=fetched.url,
                 confidence=0.82,
@@ -60,7 +61,7 @@ class ImageCollector(BaseCollector):
                     "exif": exif,
                     "virustotal": vt_data,
                     "ocr_enabled": context.settings.enable_ocr,
-                    "ocr_note": "OCR is intentionally optional and requires a local Tesseract installation.",
+                    "ocr_note": t("findings.image_ocr_note"),
                 },
             )
         ]

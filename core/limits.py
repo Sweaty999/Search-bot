@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.accounts import daily_search_count
 from core.config import get_settings
+from core.localization import t
 from core.models import User, UserRole
 from core.security import is_premium
 
@@ -29,13 +30,13 @@ class AntiSpam:
         now = monotonic()
         last = self._last_action.get(user_id, 0)
         if now - last < settings.cooldown_seconds:
-            return LimitDecision(False, f"Cooldown: wait {settings.cooldown_seconds} seconds between actions.")
+            return LimitDecision(False, t("errors.cooldown", seconds=settings.cooldown_seconds))
 
         events = self._events[user_id]
         while events and now - events[0] > settings.anti_spam_window_seconds:
             events.popleft()
         if len(events) >= settings.anti_spam_max_actions:
-            return LimitDecision(False, "Too many actions in a short window. Please slow down.")
+            return LimitDecision(False, t("errors.rate_limited"))
 
         events.append(now)
         self._last_action[user_id] = now
@@ -48,12 +49,11 @@ anti_spam = AntiSpam()
 async def check_search_limit(session: AsyncSession, user: User) -> LimitDecision:
     settings = get_settings()
     if user.is_banned:
-        return LimitDecision(False, "Your account is banned.")
+        return LimitDecision(False, t("errors.banned"))
     if user.role in {UserRole.admin, UserRole.owner}:
         return LimitDecision(True, remaining=None)
     limit = settings.premium_daily_search_limit if is_premium(user) else settings.free_daily_search_limit
     used = await daily_search_count(session, user.id)
     if used >= limit:
-        return LimitDecision(False, f"Daily search limit reached ({limit}).", remaining=0)
+        return LimitDecision(False, t("errors.daily_limit", limit=limit), remaining=0)
     return LimitDecision(True, remaining=limit - used)
-

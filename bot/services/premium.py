@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.accounts import active_subscription, grant_premium_subscription, record_payment
 from core.config import get_settings
+from core.localization import t
 from core.models import Subscription, User
 
 
@@ -23,9 +24,9 @@ class PremiumPlan:
 def premium_plans() -> dict[str, PremiumPlan]:
     settings = get_settings()
     return {
-        "premium_30": PremiumPlan("premium_30", "Premium 30 days", settings.premium_30_stars, 30, "30 days of premium OSINT features."),
-        "premium_90": PremiumPlan("premium_90", "Premium 90 days", settings.premium_90_stars, 90, "90 days of premium OSINT features."),
-        "premium_lifetime": PremiumPlan("premium_lifetime", "Premium Lifetime", settings.premium_lifetime_stars, None, "Permanent premium access."),
+        "premium_30": PremiumPlan("premium_30", t("premium.plan_30_title"), settings.premium_30_stars, 30, t("premium.plan_30_description")),
+        "premium_90": PremiumPlan("premium_90", t("premium.plan_90_title"), settings.premium_90_stars, 90, t("premium.plan_90_description")),
+        "premium_lifetime": PremiumPlan("premium_lifetime", t("premium.plan_lifetime_title"), settings.premium_lifetime_stars, None, t("premium.plan_lifetime_description")),
     }
 
 
@@ -66,7 +67,7 @@ async def activate_paid_plan(
             raw={**raw, "error": "amount_mismatch"},
             payment_id=payment_id,
         )
-        raise ValueError("Payment amount does not match the plan.")
+        raise ValueError(t("premium.amount_mismatch"))
 
     await record_payment(
         session,

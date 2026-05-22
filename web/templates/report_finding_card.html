@@ -1,0 +1,11 @@
+<details class="finding-card" open>
+  <summary>
+    <span>{{ finding.title }}</span>
+    <b>{{ finding.confidence }}</b>
+  </summary>
+  <p>{{ finding.category }} | {{ finding.source }}</p>
+  {% if finding.source_url %}
+    <a href="{{ finding.source_url }}" rel="noreferrer" target="_blank">{{ t("report.open_source") }}</a>
+  {% endif %}
+  <pre>{{ finding.data | tojson(indent=2) }}</pre>
+</details>

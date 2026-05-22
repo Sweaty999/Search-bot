@@ -12,6 +12,7 @@ from cryptography import x509
 from cryptography.hazmat.primitives import hashes
 from cryptography.x509.oid import NameOID
 
+from core.localization import t
 from osint.collectors.base import BaseCollector, CollectorContext, compact_dict, fetch_text
 from osint.models import Entity, EntityKind, Finding
 from osint.parsers.html import extract_page_metadata
@@ -31,7 +32,7 @@ class DomainCollector(BaseCollector):
             findings.append(
                 Finding(
                     category="threat_reputation",
-                    title="VirusTotal domain reputation",
+                    title=t("findings.domain_vt_title"),
                     source="virustotal",
                     confidence=0.78,
                     data=await _virustotal_domain(context, domain),
@@ -42,7 +43,7 @@ class DomainCollector(BaseCollector):
             findings.append(
                 Finding(
                     category="host_intelligence",
-                    title="Shodan domain intelligence",
+                    title=t("findings.domain_shodan_title"),
                     source="shodan",
                     confidence=0.72,
                     data=await _shodan_domain(context, domain),
@@ -52,21 +53,21 @@ class DomainCollector(BaseCollector):
         findings.extend([
             Finding(
                 category="dns",
-                title="DNS records",
+                title=t("findings.domain_dns_title"),
                 source="dns",
                 confidence=0.88,
                 data=await dns_task,
             ),
             Finding(
                 category="whois",
-                title="WHOIS public registration data",
+                title=t("findings.domain_whois_title"),
                 source="whois",
                 confidence=0.7,
                 data=await whois_task,
             ),
             Finding(
                 category="ssl",
-                title="TLS certificate metadata",
+                title=t("findings.domain_tls_title"),
                 source="ssl",
                 confidence=0.75,
                 data=await ssl_task,
@@ -82,7 +83,7 @@ class DomainCollector(BaseCollector):
         findings.append(
             Finding(
                 category="web_files",
-                title="robots.txt and sitemap.xml",
+                title=t("findings.domain_web_files_title"),
                 source="http",
                 confidence=0.6 if robots or sitemap else 0.25,
                 data=compact_dict(
@@ -103,7 +104,7 @@ class DomainCollector(BaseCollector):
             findings.append(
                 Finding(
                     category="subdomains",
-                    title="Certificate Transparency subdomains",
+                    title=t("findings.domain_ct_title"),
                     source="crt.sh",
                     source_url=f"https://crt.sh/?q=%.{domain}",
                     confidence=0.75 if subdomains else 0.25,
@@ -168,7 +169,7 @@ async def _homepage_metadata(context: CollectorContext, domain: str) -> Finding 
         metadata = extract_page_metadata(fetched.text or "", fetched.url)
         return Finding(
             category="website",
-            title="Homepage metadata and linked socials",
+            title=t("findings.domain_homepage_title"),
             source="http",
             source_url=fetched.url,
             confidence=0.82,

@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.services.dependencies import get_db
 from core.accounts import upsert_telegram_user
 from core.config import get_settings
+from core.localization import t
 from core.models import User
 from core.security import parse_telegram_init_data, verify_telegram_webapp_init_data
 
@@ -30,9 +31,8 @@ async def current_webapp_user(
     elif settings.env == "development":
         user = await upsert_telegram_user(session, telegram_id=x_dev_telegram_id or 100000001, username="dev_user")
     else:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Telegram WebApp init data.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=t("errors.invalid_webapp_data"))
 
     if user.is_banned:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is banned.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=t("errors.user_banned"))
     return user
-

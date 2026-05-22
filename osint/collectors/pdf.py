@@ -7,6 +7,7 @@ from typing import Any
 
 from pypdf import PdfReader
 
+from core.localization import t
 from osint.collectors.base import BaseCollector, CollectorContext, fetch_bytes
 from osint.models import Entity, EntityKind, Finding
 
@@ -25,10 +26,10 @@ class PdfCollector(BaseCollector):
             return [
                 Finding(
                     category="pdf",
-                    title="PDF was not fetched",
+                    title=t("findings.pdf_not_fetched_title"),
                     source=self.name,
                     confidence=0.2,
-                    description="The PDF URL is not public HTTP(S) or could not be downloaded.",
+                    description=t("findings.pdf_not_fetched_description"),
                 )
             ]
 
@@ -40,7 +41,7 @@ class PdfCollector(BaseCollector):
             return [
                 Finding(
                     category="pdf",
-                    title="PDF parse error",
+                    title=t("findings.pdf_parse_error_title"),
                     source=self.name,
                     confidence=0.25,
                     data={"error": str(exc), "status_code": fetched.status},
@@ -60,7 +61,7 @@ class PdfCollector(BaseCollector):
         return [
             Finding(
                 category="pdf",
-                title="PDF metadata and extracted public indicators",
+                title=t("findings.pdf_metadata_title"),
                 source=self.name,
                 source_url=fetched.url,
                 confidence=0.82,

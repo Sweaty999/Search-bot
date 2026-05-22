@@ -14,18 +14,10 @@ from bot.services.premium import (
 )
 from bot.services.users import get_or_create_user
 from core.database import async_session
+from core.localization import t
 
 
-FEATURES = (
-    "<b>Premium Features</b>\n"
-    "Deep Scan\n"
-    "Advanced Graph\n"
-    "AI Analysis ready extension point\n"
-    "Screenshot Intelligence\n"
-    "Archive Search\n"
-    "Extended Metadata\n"
-    "Full HTML Reports"
-)
+FEATURES = t("premium.features")
 
 
 async def premium_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -35,7 +27,7 @@ async def premium_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     await query.answer()
 
     if query.data in {"buy_premium", "renew_premium"}:
-        await query.edit_message_text("Choose a Telegram Stars premium plan.", reply_markup=buy_premium_menu())
+        await query.edit_message_text(t("premium.choose_plan"), reply_markup=buy_premium_menu())
         return
     if query.data == "premium_features":
         await query.edit_message_text(FEATURES, parse_mode=ParseMode.HTML, reply_markup=premium_menu())
@@ -46,12 +38,14 @@ async def premium_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             status = await subscription_status(session, user)
             await session.commit()
         text = (
-            "<b>My Subscription</b>\n"
-            f"Current plan: <code>{status['plan']}</code>\n"
-            f"Remaining days: <code>{status['remaining_days'] if status['remaining_days'] is not None else 'lifetime'}</code>\n"
-            f"Activation date: <code>{status['started_at'] or '-'}</code>\n"
-            f"Expiry date: <code>{status['expires_at'] or 'never'}</code>\n"
-            f"Premium status: <b>{'active' if status['active'] else 'inactive'}</b>"
+            t(
+                "premium.subscription",
+                plan=status["plan"],
+                days=status["remaining_days"] if status["remaining_days"] is not None else t("premium.lifetime"),
+                started=status["started_at"] or "-",
+                expires=status["expires_at"] or t("premium.never"),
+                status=t("bot.active") if status["active"] else t("bot.inactive"),
+            )
         )
         await query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=premium_menu())
 
@@ -64,7 +58,7 @@ async def buy_plan_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     plan_code = query.data.split(":", 1)[1]
     plan = premium_plans().get(plan_code)
     if not plan:
-        await query.edit_message_text("Unknown premium plan.")
+        await query.edit_message_text(t("premium.unknown_plan"))
         return
 
     payload = make_invoice_payload(plan.code)
@@ -85,12 +79,12 @@ async def precheckout_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         return
     parsed = parse_invoice_payload(precheckout.invoice_payload)
     if not parsed:
-        await precheckout.answer(ok=False, error_message="Invalid invoice payload.")
+        await precheckout.answer(ok=False, error_message=t("premium.invalid_invoice"))
         return
     plan_code, _payment_id = parsed
     plan = premium_plans()[plan_code]
     if precheckout.currency != "XTR" or precheckout.total_amount != plan.stars:
-        await precheckout.answer(ok=False, error_message="Payment amount does not match the selected plan.")
+        await precheckout.answer(ok=False, error_message=t("premium.amount_mismatch"))
         return
     await precheckout.answer(ok=True)
 
@@ -102,7 +96,7 @@ async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return
     parsed = parse_invoice_payload(payment.invoice_payload)
     if not parsed:
-        await message.reply_text("Payment received, but the invoice payload was invalid. Contact owner.")
+        await message.reply_text(t("premium.payment_payload_invalid"))
         return
     plan_code, payment_id = parsed
 
@@ -120,13 +114,12 @@ async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE)
             )
         except ValueError as exc:
             await session.rollback()
-            await message.reply_text(f"Payment verification failed: {exc}")
+            await message.reply_text(t("premium.verification_failed", error=exc))
             return
         await session.commit()
 
-    expires = subscription.expires_at.isoformat() if subscription.expires_at else "never"
+    expires = subscription.expires_at.isoformat() if subscription.expires_at else t("premium.never")
     await message.reply_text(
-        f"Premium activated instantly.\nPlan: {subscription.plan}\nExpires: {expires}",
+        t("premium.activated", plan=subscription.plan, expires=expires),
         reply_markup=premium_menu(),
     )
-

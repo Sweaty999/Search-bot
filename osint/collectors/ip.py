@@ -4,6 +4,7 @@ import ipaddress
 import socket
 from typing import Any
 
+from core.localization import t
 from osint.collectors.base import BaseCollector, CollectorContext, compact_dict
 from osint.models import Finding
 
@@ -16,7 +17,7 @@ class IpCollector(BaseCollector):
         findings = [
             Finding(
                 category="ip",
-                title="IP address classification and reverse DNS",
+                title=t("findings.ip_classification_title"),
                 source=self.name,
                 confidence=0.9,
                 data={
@@ -26,7 +27,7 @@ class IpCollector(BaseCollector):
                     "is_private": ip.is_private,
                     "is_reserved": ip.is_reserved,
                     "reverse_dns": _reverse_dns(str(ip)),
-                    "local_asn_lookup": "not_configured",
+                    "local_asn_lookup": t("bot.none"),
                 },
             )
         ]
@@ -35,7 +36,7 @@ class IpCollector(BaseCollector):
             findings.append(
                 Finding(
                     category="geo_asn",
-                    title="IPInfo geolocation and ASN",
+                    title=t("findings.ipinfo_title"),
                     source="ipinfo",
                     confidence=0.82,
                     data=await _ipinfo(context, str(ip)),
@@ -46,7 +47,7 @@ class IpCollector(BaseCollector):
             findings.append(
                 Finding(
                     category="host_intelligence",
-                    title="Shodan host intelligence",
+                    title=t("findings.shodan_host_title"),
                     source="shodan",
                     confidence=0.78,
                     data=await _shodan_host(context, str(ip)),
@@ -57,7 +58,7 @@ class IpCollector(BaseCollector):
             findings.append(
                 Finding(
                     category="threat_reputation",
-                    title="VirusTotal IP reputation",
+                    title=t("findings.vt_ip_title"),
                     source="virustotal",
                     confidence=0.78,
                     data=await _virustotal_ip(context, str(ip)),

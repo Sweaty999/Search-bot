@@ -1,6 +1,12 @@
 (function () {
+  const I18N = window.__I18N__ || {};
+  function t(path) {
+    return String(path).split(".").reduce((value, key) => (value && value[key] != null ? value[key] : null), I18N) || path;
+  }
+
   const COLORS = {
     root: "#48f0ff",
+    telegram: "#229ed9",
     username: "#ff4fd8",
     email: "#8cff66",
     phone: "#ffd166",
@@ -24,12 +30,12 @@
     }
 
     const rawGraph = normalizeGraph(graph);
-    container.setAttribute("data-empty", config.emptyText || "No graph data");
+    container.setAttribute("data-empty", config.emptyText || t("web.graph_no_data"));
     container.setAttribute("data-state", rawGraph.nodes.length ? "ready" : "empty");
 
     if (!window.vis || !window.vis.Network) {
       container.setAttribute("data-state", "empty");
-      container.setAttribute("data-empty", "Graph renderer unavailable");
+      container.setAttribute("data-empty", t("web.graph_renderer_unavailable"));
       return null;
     }
 
@@ -107,7 +113,7 @@
     ["all", ...groups].forEach((group) => {
       const button = document.createElement("button");
       button.type = "button";
-      button.textContent = group.replace(/_/g, " ");
+      button.textContent = group === "all" ? t("web.all") : t(`web.group.${group}`).replace(/_/g, " ");
       button.setAttribute("aria-pressed", group === "all" ? "true" : "false");
       if (group === "all") button.classList.add("is-active");
       button.addEventListener("click", () => {
@@ -282,7 +288,7 @@
       from: String(edge.source || edge.from),
       to: String(edge.target || edge.to),
       label: isCompact ? "" : trimLabel(label, 22),
-      title: label ? `${label} | confidence: ${confidence.toFixed(2)}` : `confidence: ${confidence.toFixed(2)}`,
+      title: label ? `${label} | ${t("report.confidence")}: ${confidence.toFixed(2)}` : `${t("report.confidence")}: ${confidence.toFixed(2)}`,
       confidence,
       arrows: { to: { enabled: true, scaleFactor: isCompact ? 0.42 : 0.55 } },
       width: 0.8 + confidence * 1.6,

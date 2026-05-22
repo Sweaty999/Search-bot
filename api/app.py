@@ -10,6 +10,7 @@ from core.accounts import seed_roles
 from core.api_manager import get_api_manager
 from core.config import get_settings
 from core.database import async_session, init_db
+from core.localization import t
 from core.logger import setup_logging
 from core.webapp import validate_webapp_url
 import logging
@@ -33,7 +34,7 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    app = FastAPI(title=settings.app_name, version="1.0.0", lifespan=lifespan)
+    app = FastAPI(title=t("app.name"), version="1.0.0", lifespan=lifespan)
     app.mount("/static", StaticFiles(directory="web/static"), name="static")
     app.mount("/css", StaticFiles(directory="web/css"), name="css")
     app.mount("/js", StaticFiles(directory="web/js"), name="js")

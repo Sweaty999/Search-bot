@@ -7,11 +7,13 @@ from pathlib import Path
 import networkx as nx
 import pyvis
 
+from core.localization import locale_json, t
 from osint.models import Entity, GraphData, GraphEdge, GraphNode, ScanResult, SearchHit
 
 
 GROUP_COLORS = {
     "root": "#48f0ff",
+    "telegram": "#229ed9",
     "username": "#ff4fd8",
     "email": "#8cff66",
     "phone": "#ffd166",
@@ -29,6 +31,7 @@ GROUP_COLORS = {
 
 GROUP_ICONS = {
     "root": "◎",
+    "telegram": "TG",
     "username": "@",
     "email": "✉",
     "phone": "☎",
@@ -70,7 +73,7 @@ def build_graph(result: ScanResult) -> GraphData:
                 title=entity.kind.value,
                 value=max(1, int(entity.confidence * 5)),
             )
-            graph.add_edge(finding_id, entity_id, label="contains", confidence=entity.confidence)
+            graph.add_edge(finding_id, entity_id, label=t("graph.contains"), confidence=entity.confidence)
 
         for hit in _finding_hits(finding):
             _add_hit(graph, finding_id, hit)
@@ -126,11 +129,11 @@ def _render_graph_export_html(graph_data: GraphData) -> str:
     nodes_count = len(graph_data.nodes)
     edges_count = len(graph_data.edges)
     return f"""<!doctype html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Graph Export</title>
+  <title>{t("report.graph_export")}</title>
   <style>{assets["vis_network_css"]}</style>
   <style>{_inline_style(_GRAPH_EXPORT_CSS)}</style>
 </head>
@@ -138,17 +141,17 @@ def _render_graph_export_html(graph_data: GraphData) -> str:
   <main class="export-shell">
     <header class="export-header">
       <div>
-        <p class="eyebrow">OSINT graph</p>
-        <h1>Graph Export</h1>
+        <p class="eyebrow">{t("report.graph")}</p>
+        <h1>{t("report.graph_export")}</h1>
       </div>
       <div class="export-stats">
-        <div><span>Nodes</span><b>{nodes_count}</b></div>
-        <div><span>Edges</span><b>{edges_count}</b></div>
+        <div><span>{t("report.nodes")}</span><b>{nodes_count}</b></div>
+        <div><span>{t("report.edges")}</span><b>{edges_count}</b></div>
       </div>
     </header>
     <section class="graph-card">
       <div class="toolbar">
-        <input id="graphSearch" class="graph-search" placeholder="Search graph" autocomplete="off">
+        <input id="graphSearch" class="graph-search" placeholder="{t("report.search_graph")}" autocomplete="off">
         <div id="groupFilters" class="filters"></div>
       </div>
       <div id="graph"></div>
@@ -158,9 +161,10 @@ def _render_graph_export_html(graph_data: GraphData) -> str:
   <script>{assets["graph_renderer_js"]}</script>
   <script>
     window.__GRAPH__ = {graph_json};
+    window.__I18N__ = {locale_json()};
     window.addEventListener("DOMContentLoaded", function () {{
       var controller = window.OsintGraph.renderGraph(document.getElementById("graph"), window.__GRAPH__, {{
-        emptyText: "No graph data in this export"
+        emptyText: window.__I18N__.report.graph_empty_export
       }});
       window.OsintGraph.bindFilters(document.getElementById("groupFilters"), controller);
       window.OsintGraph.bindSearch(document.getElementById("graphSearch"), controller);
@@ -426,22 +430,23 @@ def _group_for_entity(entity: Entity) -> str:
 
 
 def _tooltip(title: str, source: str, confidence: float) -> str:
-    return html.escape(f"{title}\nsource: {source}\nconfidence: {confidence:.2f}")
+    return html.escape(f"{title}\n{t('report.source')}: {source}\n{t('report.confidence')}: {confidence:.2f}")
 
 
 def _label(group: str, text: str) -> str:
     prefixes = {
-        "root": "target",
+        "root": t("web.group.root"),
+        "telegram": t("web.group.telegram"),
         "username": "@",
-        "email": "mail",
-        "phone": "tel",
-        "domain": "net",
+        "email": t("web.group.email"),
+        "phone": t("web.group.phone"),
+        "domain": t("web.group.domain"),
         "ip": "ip",
-        "url": "url",
-        "social": "soc",
-        "metadata": "info",
-        "search": "src",
-        "image_url": "img",
+        "url": t("web.group.url"),
+        "social": t("web.group.social"),
+        "metadata": t("web.group.metadata"),
+        "search": t("web.group.search"),
+        "image_url": t("web.group.image_url"),
         "pdf_url": "pdf",
     }
     prefix = prefixes.get(group, group)
@@ -486,7 +491,7 @@ def _add_source_row(graph: nx.MultiDiGraph, source_id: str, row: dict[str, objec
         node_id,
         label=_label("search", title[:48]),
         group="search",
-        title=html.escape(f"{url}\nconfidence: {row.get('confidence')}\nrisk: {row.get('risk_score')}"),
+        title=html.escape(f"{url}\n{t('report.confidence')}: {row.get('confidence')}\n{t('report.risk')}: {row.get('risk_score')}"),
         value=max(1, int(float(row.get("confidence") or 0.4) * 5)),
     )
     graph.add_edge(source_id, node_id, label=str(row.get("engine") or "source"), confidence=float(row.get("confidence") or 0.4))
@@ -494,4 +499,4 @@ def _add_source_row(graph: nx.MultiDiGraph, source_id: str, row: dict[str, objec
     if domain:
         domain_id = f"domain:{domain}"
         graph.add_node(domain_id, label=_label("domain", domain), group="domain", title=domain, value=3)
-        graph.add_edge(node_id, domain_id, label="hosted_on", confidence=0.7)
+        graph.add_edge(node_id, domain_id, label=t("graph.hosted_on"), confidence=0.7)

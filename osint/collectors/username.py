@@ -4,6 +4,7 @@ import asyncio
 
 from bs4 import BeautifulSoup
 
+from core.localization import t
 from osint.collectors.base import BaseCollector, CollectorContext
 from osint.models import Entity, EntityKind, Finding
 from osint.parsers.html import extract_page_metadata
@@ -55,7 +56,7 @@ class UsernameCollector(BaseCollector):
         findings = [
             Finding(
                 category="social_profiles",
-                title="Candidate public social profiles",
+                title=t("findings.username_profiles_title"),
                 source=self.name,
                 confidence=max([float(profile.get("confidence") or 0.0) for profile in profiles], default=0.55),
                 data={"profiles": profiles},
@@ -68,7 +69,7 @@ class UsernameCollector(BaseCollector):
             findings.append(
                 Finding(
                     category="public_mentions",
-                    title="Username public mentions",
+                    title=t("findings.username_mentions_title"),
                     source="multi_engine_search",
                     confidence=0.65 if hits else 0.2,
                     data={"hits": [hit.model_dump() for hit in hits]},

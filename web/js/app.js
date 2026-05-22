@@ -1,4 +1,9 @@
 (function () {
+  const I18N = window.__I18N__ || {};
+  function t(path) {
+    return String(path).split(".").reduce((value, key) => (value && value[key] != null ? value[key] : null), I18N) || path;
+  }
+
   const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
   if (tg) {
     tg.ready();
@@ -47,7 +52,7 @@
       const profile = await api("/api/profile");
       state.profile = profile;
       document.getElementById("profileLine").textContent =
-        `@${profile.username || "user"} | ${profile.role} | premium=${profile.premium ? "active" : "inactive"}`;
+        `@${profile.username || t("web.user")} | ${t("web.role")}=${profile.role} | ${profile.premium ? t("web.premium_active") : t("web.premium_inactive")}`;
       if (["admin", "owner"].includes(profile.role)) {
         document.getElementById("adminBtn").classList.remove("hidden");
         document.getElementById("adminPanel").classList.remove("hidden");
@@ -60,7 +65,7 @@
   async function runSearch(deep) {
     const query = queryInput.value.trim();
     if (!query) return;
-    setSummary({ status: "running", query });
+    setSummary({ [t("report.status")]: t("web.running"), [t("web.query")]: query });
     document.getElementById("findings").innerHTML = "";
     try {
       const payload = {
@@ -73,7 +78,7 @@
       renderResult(response.result, response.report_url);
       await loadHistory();
     } catch (error) {
-      setSummary({ error: error.message });
+      setSummary({ [t("web.error")]: error.message });
     }
   }
 
@@ -84,7 +89,7 @@
       holder.innerHTML = "";
       data.items.forEach((item) => {
         const button = document.createElement("button");
-        button.textContent = `${item.entity_type} | ${item.query}`;
+        button.textContent = `${t(`entities.${item.entity_type}`)} | ${item.query}`;
         button.title = item.created_at;
         button.addEventListener("click", () => loadSearch(item.id));
         holder.appendChild(button);
@@ -97,7 +102,7 @@
       const data = await api(`/api/search/${id}`);
       renderResult(data.result, `/api/reports/search/${id}`);
     } catch (error) {
-      setSummary({ error: error.message });
+      setSummary({ [t("web.error")]: error.message });
     }
   }
 
@@ -109,7 +114,7 @@
       holder.innerHTML = "";
       Object.entries(stats).forEach(([key, value]) => {
         const div = document.createElement("div");
-        div.innerHTML = `<span>${escapeHtml(key)}</span><b>${escapeHtml(String(value))}</b>`;
+        div.innerHTML = `<span>${escapeHtml(statLabel(key))}</span><b>${escapeHtml(String(value))}</b>`;
         holder.appendChild(div);
       });
       const providerHolder = document.getElementById("providerHealth");
@@ -121,27 +126,27 @@
         card.innerHTML = `
           <div class="finding-head">
             <h3>${escapeHtml(provider.name)}</h3>
-            <span>${escapeHtml(state)}</span>
+            <span>${escapeHtml(t(`web.${state}`))}</span>
           </div>
-          <p>last=${escapeHtml(provider.last_status)} | latency=${escapeHtml(String(provider.last_response_ms || "-"))}ms</p>
+          <p>${escapeHtml(t("web.last"))}=${escapeHtml(provider.last_status)} | ${escapeHtml(t("web.latency"))}=${escapeHtml(String(provider.last_response_ms || "-"))}ms</p>
           <p>${escapeHtml(provider.last_error || "")}</p>
         `;
         providerHolder.appendChild(card);
       });
     } catch (error) {
-      setSummary({ error: error.message });
+      setSummary({ [t("web.error")]: error.message });
     }
   }
 
   function renderResult(result, reportUrl) {
     setSummary({
-      entity: result.entity.kind,
-      value: result.entity.normalized,
-      mode: result.mode,
-      confidence: result.confidence,
-      findings: result.findings.length,
-      search_hits: result.search_hits.length,
-      report: reportUrl || "premium",
+      [t("web.entity")]: t(`entities.${result.entity.kind}`),
+      [t("web.value")]: result.entity.normalized,
+      [t("report.mode")]: t(`search.mode_${result.mode}`),
+      [t("web.confidence")]: result.confidence,
+      [t("web.findings")]: result.findings.length,
+      [t("web.search_hits")]: result.search_hits.length,
+      [t("web.report")]: reportUrl || t("web.premium"),
     });
     renderFindings(result.findings, reportUrl);
     renderGraph(result.graph);
@@ -164,7 +169,7 @@
       const link = document.createElement("a");
       link.href = reportUrl;
       link.target = "_blank";
-      link.textContent = "Open HTML Report";
+      link.textContent = t("web.open_report");
       holder.appendChild(link);
     }
     findings.slice(0, 20).forEach((finding) => {
@@ -188,7 +193,7 @@
     const container = document.getElementById("graph");
     if (!container || !window.OsintGraph) return;
     state.graphController = window.OsintGraph.renderGraph(container, state.graph, {
-      emptyText: "Run a search to build the graph",
+      emptyText: t("web.run_search_graph"),
     });
     state.network = state.graphController ? state.graphController.network : null;
     window.OsintGraph.bindFilters(document.getElementById("groupFilters"), state.graphController);
@@ -197,6 +202,15 @@
 
   function escapeHtml(value) {
     return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[char]));
+  }
+
+  function statLabel(key) {
+    return {
+      users: t("admin.stat_users"),
+      searches: t("admin.stat_searches"),
+      reports: t("admin.stat_reports"),
+      payments: t("admin.stat_payments"),
+    }[key] || key;
   }
 
   function escapeAttr(value) {

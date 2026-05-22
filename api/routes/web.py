@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.auth.telegram import current_webapp_user
 from api.services.dependencies import get_db
 from core.config import get_settings
+from core.localization import load_locale, locale_json, t
 from core.models import Report, Search, User
 from core.security import is_premium
 
@@ -24,7 +25,7 @@ async def dashboard(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="dashboard.html",
-        context={"app_name": settings.app_name, "webapp_url": settings.webapp_url},
+        context={"app_name": t("app.name"), "webapp_url": settings.webapp_url, "t": t, "i18n_json": locale_json(), "i18n": load_locale()},
     )
 
 
@@ -50,12 +51,12 @@ async def report_by_search(
         search_statement = search_statement.where(Search.user_id == user.id)
     search = await session.scalar(search_statement)
     if not search:
-        raise HTTPException(status_code=404, detail="Search not found.")
+        raise HTTPException(status_code=404, detail=t("errors.search_not_found"))
 
     report = await session.scalar(select(Report).where(Report.search_id == search.id).order_by(Report.created_at.desc()))
     if not report:
-        raise HTTPException(status_code=404, detail="Report not found or premium is required.")
+        raise HTTPException(status_code=404, detail=t("errors.report_not_found"))
     path = Path(report.html_path)
     if not path.exists():
-        raise HTTPException(status_code=404, detail="Report file missing.")
+        raise HTTPException(status_code=404, detail=t("errors.report_missing"))
     return FileResponse(path, media_type="text/html", filename=path.name)

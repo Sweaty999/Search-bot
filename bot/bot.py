@@ -34,6 +34,7 @@ from core.accounts import seed_roles
 from core.api_manager import get_api_manager
 from core.config import get_settings
 from core.database import async_session, init_db
+from core.localization import t
 from core.logger import setup_logging
 from core.webapp import validate_webapp_url
 import logging
@@ -55,12 +56,12 @@ async def post_init(application: Application) -> None:
 def build_application() -> Application:
     settings = get_settings()
     if not settings.bot_token:
-        raise SystemExit("BOT_TOKEN is required. Add BOT_TOKEN=<your BotFather token> to .env.")
+        raise SystemExit(t("errors.bot_token_required"))
 
     application = Application.builder().token(settings.bot_token).post_init(post_init).build()
 
     search_conversation = ConversationHandler(
-        entry_points=[CallbackQueryHandler(ask_search, pattern="^(new_search|deep_scan|build_graph|html_report)$")],
+        entry_points=[CallbackQueryHandler(ask_search, pattern="^(new_search|telegram_scan|phone_scan|email_scan|deep_scan|build_graph|html_report)$")],
         states={WAITING_QUERY: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_search_query)]},
         fallbacks=[],
         per_message=False,
@@ -82,7 +83,7 @@ def build_application() -> Application:
     application.add_handler(CommandHandler("provider_reset", provider_reset_command))
 
     application.add_handler(search_conversation)
-    application.add_handler(CallbackQueryHandler(search_action_callback, pattern="^(refresh|graph|export|sources|clear_cache):"))
+    application.add_handler(CallbackQueryHandler(search_action_callback, pattern="^(refresh|deep|graph|export|sources|related|clear_cache):"))
     application.add_handler(CallbackQueryHandler(buy_plan_callback, pattern="^buy:"))
     application.add_handler(CallbackQueryHandler(premium_callback, pattern="^(buy_premium|premium_features|my_subscription|renew_premium)$"))
     application.add_handler(CallbackQueryHandler(admin_callback, pattern="^admin_"))

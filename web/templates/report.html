@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ app_name }} Report</title>
+  <title>{{ t("report.title") }}</title>
   {% if vis_network_css %}<style>{{ vis_network_css | safe }}</style>{% endif %}
   {% if app_css %}<style>{{ app_css | safe }}</style>{% else %}<link rel="stylesheet" href="/css/app.css">{% endif %}
 </head>
@@ -11,21 +11,21 @@
   <main class="shell report-shell">
     <header class="topbar">
       <div>
-        <h1>OSINT Report</h1>
-        <p>{{ result.entity.kind.value }} | {{ result.entity.normalized }} | {{ result.created_at.isoformat() }}</p>
+        <h1>{{ t("report.title") }}</h1>
+        <p>{{ t("web.entity") }}: {{ t("entities." ~ result.entity.kind.value) }} | {{ result.entity.normalized }} | {{ result.created_at.isoformat() }}</p>
       </div>
       <div class="score">{{ "%.2f"|format(result.confidence) }}</div>
     </header>
 
-    <section class="metric-grid report-metrics animated-grid">
-      <div><span>Mode</span><b>{{ result.mode }}</b></div>
-      <div><span>Status</span><b>{{ result.status }}</b></div>
-      <div><span>Confidence</span><b>{{ "%.2f"|format(result.confidence) }}</b><i style="--v:{{ result.confidence }}"></i></div>
-      <div><span>Risk</span><b>{{ "%.2f"|format(risk_score) }}</b><i style="--v:{{ risk_score }}"></i></div>
-      <div><span>Findings</span><b>{{ result.findings|length }}</b></div>
-      <div><span>Sources</span><b>{{ source_rows|length }}</b></div>
-      <div><span>Graph Nodes</span><b>{{ graph.nodes|length }}</b></div>
-      <div><span>Graph Edges</span><b>{{ graph.edges|length }}</b></div>
+    <section class="metric-grid report-metrics animated-grid" aria-label="{{ t("report.summary") }}">
+      <div><span>{{ t("report.mode") }}</span><b>{{ t("search.mode_" ~ result.mode) }}</b></div>
+      <div><span>{{ t("report.status") }}</span><b>{{ t("status." ~ result.status) }}</b></div>
+      <div><span>{{ t("report.confidence") }}</span><b>{{ "%.2f"|format(result.confidence) }}</b><i style="--v:{{ result.confidence }}"></i></div>
+      <div><span>{{ t("report.risk") }}</span><b>{{ "%.2f"|format(risk_score) }}</b><i style="--v:{{ risk_score }}"></i></div>
+      <div><span>{{ t("report.findings") }}</span><b>{{ result.findings|length }}</b></div>
+      <div><span>{{ t("report.sources") }}</span><b>{{ source_rows|length }}</b></div>
+      <div><span>{{ t("report.graph_nodes") }}</span><b>{{ graph.nodes|length }}</b></div>
+      <div><span>{{ t("report.graph_edges") }}</span><b>{{ graph.edges|length }}</b></div>
     </section>
 
     {% if result.refusal_reason %}
@@ -33,19 +33,37 @@
     {% endif %}
 
     <section class="report-band">
-      <h2>Entity Map</h2>
+      <h2>{{ t("report.summary") }}</h2>
+      <p>{{ result.summary.get("ai_summary", {}).get("text", t("ai.insufficient")) }}</p>
+    </section>
+
+    <section class="report-band">
+      <h2>{{ t("report.found_entities") }}</h2>
       <div class="entity-map">
         {% for key, value in entity_counters.items() %}
-          <div><span>{{ key }}</span><b>{{ value }}</b></div>
+          <div><span>{{ t("entities." ~ key) }}</span><b>{{ value }}</b></div>
+        {% else %}
+          <p class="muted">{{ t("report.no_data") }}</p>
         {% endfor %}
       </div>
     </section>
 
+    <section class="report-band">
+      <h2>{{ t("report.confidence") }}</h2>
+      <pre>{{ result.summary | tojson(indent=2) }}</pre>
+    </section>
+
+    <section class="report-band">
+      <h2>{{ t("report.risks") }}</h2>
+      <p>{{ result.summary.get("ai_summary", {}).get("warnings", [t("ai.weak_evidence")]) | join(" ") }}</p>
+      <pre>{{ {"risk_score": risk_score} | tojson(indent=2) }}</pre>
+    </section>
+
     <section class="graph-pane report-graph">
       <div class="pane-title">
-        <span>Graph</span>
+        <span>{{ t("report.graph") }}</span>
         <div class="graph-tools">
-          <input id="graphSearch" class="graph-search" placeholder="Search graph">
+          <input id="graphSearch" class="graph-search" placeholder="{{ t("report.search_graph") }}">
           <div id="groupFilters" class="filters"></div>
         </div>
       </div>
@@ -53,26 +71,50 @@
     </section>
 
     <section class="report-band">
-      <h2>Timeline</h2>
-      <div class="timeline">
-        {% for item in timeline %}
-          <div><span>{{ item.stage }}</span><pre>{{ item | tojson(indent=2) }}</pre></div>
+      <h2>{{ t("report.telegram_analysis") }}</h2>
+      <div class="report-findings">
+        {% for finding in result.findings if finding.category.startswith("telegram") or finding.category == "username_reuse" %}
+          {% include "report_finding_card.html" ignore missing %}
+        {% else %}
+          <p class="muted">{{ t("report.no_data") }}</p>
         {% endfor %}
       </div>
     </section>
 
     <section class="report-band">
-      <h2>Source Table</h2>
+      <h2>{{ t("report.phone_analysis") }}</h2>
+      <div class="report-findings">
+        {% for finding in result.findings if finding.category.startswith("phone") or finding.category == "public_mentions" and result.entity.kind.value == "phone" %}
+          {% include "report_finding_card.html" ignore missing %}
+        {% else %}
+          <p class="muted">{{ t("report.no_data") }}</p>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="report-band">
+      <h2>{{ t("report.email_analysis") }}</h2>
+      <div class="report-findings">
+        {% for finding in result.findings if finding.category.startswith("email") or finding.category in ["dns", "email_validation", "threat_reputation", "profile"] and result.entity.kind.value == "email" %}
+          {% include "report_finding_card.html" ignore missing %}
+        {% else %}
+          <p class="muted">{{ t("report.no_data") }}</p>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="report-band">
+      <h2>{{ t("report.sources") }}</h2>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Source</th>
-              <th>Domain</th>
-              <th>Engine</th>
-              <th>Status</th>
-              <th>Confidence</th>
-              <th>Risk</th>
+              <th>{{ t("report.source") }}</th>
+              <th>{{ t("report.domain") }}</th>
+              <th>{{ t("report.engine") }}</th>
+              <th>{{ t("report.http_status") }}</th>
+              <th>{{ t("report.confidence") }}</th>
+              <th>{{ t("report.risk") }}</th>
             </tr>
           </thead>
           <tbody>
@@ -88,19 +130,42 @@
                 <td>{{ row.confidence }}</td>
                 <td>{{ row.risk_score }}</td>
               </tr>
+            {% else %}
+              <tr><td colspan="6">{{ t("report.no_data") }}</td></tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
     </section>
 
+    <section class="report-band">
+      <h2>{{ t("report.timeline") }}</h2>
+      <div class="timeline">
+        {% for item in timeline %}
+          <div><span>{{ item.stage }}</span><pre>{{ item | tojson(indent=2) }}</pre></div>
+        {% else %}
+          <p class="muted">{{ t("report.no_data") }}</p>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="report-band">
+      <h2>{{ t("report.next_steps") }}</h2>
+      {% set next_steps = result.summary.get("ai_summary", {}).get("next_steps", []) %}
+      {% if next_steps %}
+        <ul>{% for step in next_steps %}<li>{{ step }}</li>{% endfor %}</ul>
+      {% else %}
+        <p class="muted">{{ t("ai.insufficient") }}</p>
+      {% endif %}
+    </section>
+
     {% if screenshots %}
       <section class="report-band">
-        <h2>Screenshots</h2>
+        <h2>{{ t("report.screenshots") }}</h2>
         <div class="screenshot-grid">
           {% for screenshot in screenshots %}
             <figure>
-              <img src="{{ screenshot.data_url }}" alt="Screenshot">
+              <img src="{{ screenshot.data_url }}" alt="{{ t("report.screenshots") }}">
               <figcaption>{{ screenshot.path }}</figcaption>
             </figure>
           {% endfor %}
@@ -109,7 +174,7 @@
     {% endif %}
 
     <section class="report-band">
-      <h2>Findings</h2>
+      <h2>{{ t("report.findings") }}</h2>
       <div class="report-findings">
         {% for finding in result.findings %}
           <details class="finding-card" open>
@@ -119,16 +184,19 @@
             </summary>
             <p>{{ finding.category }} | {{ finding.source }}</p>
             {% if finding.source_url %}
-              <a href="{{ finding.source_url }}" rel="noreferrer" target="_blank">{{ finding.source_url }}</a>
+              <a href="{{ finding.source_url }}" rel="noreferrer" target="_blank">{{ t("report.open_source") }}</a>
             {% endif %}
             <pre>{{ finding.data | tojson(indent=2) }}</pre>
           </details>
+        {% else %}
+          <p class="muted">{{ t("report.no_data") }}</p>
         {% endfor %}
       </div>
     </section>
   </main>
   <script>
     window.__GRAPH__ = {{ graph | tojson }};
+    window.__I18N__ = {{ i18n_json | safe }};
   </script>
   {% if vis_network_js %}<script>{{ vis_network_js | safe }}</script>{% else %}<script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>{% endif %}
   {% if graph_renderer_js %}<script>{{ graph_renderer_js | safe }}</script>{% else %}<script src="/js/graph-visualization.js"></script>{% endif %}

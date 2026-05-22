@@ -11,6 +11,7 @@ from typing import Any
 from urllib.parse import parse_qsl
 
 from core.config import get_settings
+from core.localization import t
 from core.models import User, UserRole
 
 
@@ -41,7 +42,7 @@ def assess_query_safety(query: str) -> SafetyDecision:
         if re.search(pattern, normalized, re.IGNORECASE):
             return SafetyDecision(
                 False,
-                "I can help only with legal OSINT on public sources. This request appears to ask for private data, access bypass, credentials, leaks, or doxing.",
+                t("errors.policy_refusal"),
             )
     return SafetyDecision(True)
 
@@ -67,7 +68,7 @@ def is_premium(user: User | None) -> bool:
 
 def require_owner(user: User | None) -> None:
     if effective_role(user) != UserRole.owner:
-        raise PermissionError("Owner-only action.")
+        raise PermissionError(t("errors.owner_only_action"))
 
 
 def parse_telegram_init_data(init_data: str) -> dict[str, Any]:
@@ -106,4 +107,3 @@ def make_cache_key(namespace: str, value: str) -> str:
 
 def utc_timestamp() -> str:
     return datetime.now(timezone.utc).isoformat()
-
